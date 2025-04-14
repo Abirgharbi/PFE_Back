@@ -1,0 +1,17 @@
+version: "3"
+
+services:
+  product_management_service:
+    hostname: product_management_service
+    build: .
+    command: pnpm test
+    ports:
+      - "4000:4000"
+    volumes:
+      - .:/app
+    networks:
+      - arkea_api
+
+networks:
+  arkea_api:
+    external: true

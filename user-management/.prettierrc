@@ -1,0 +1,12 @@
+{
+    "semi": true,
+    "trailingComma": "none",
+    "singleQuote": true,
+    "printWidth": 80,
+    "proseWrap": "always",
+    "bracketSpacing": true,
+    "bracketSameLine": false,
+    "arrowParens": "avoid",
+    "endOfLine": "lf"
+  }
+  

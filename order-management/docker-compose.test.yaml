@@ -1,0 +1,11 @@
+version: "3"
+
+services:
+  order_management_service:
+    hostname: order_management_service
+    build: .
+    command: pnpm start
+    ports:
+      - "4001:4001"
+    volumes:
+      - .:/app

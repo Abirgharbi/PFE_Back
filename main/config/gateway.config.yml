@@ -1,0 +1,75 @@
+http:
+  port: 8000
+  
+apiEndpoints:
+  order:
+    host: "*"
+    paths: ['/order', '/order/*']
+
+  product:
+    host: "*"
+    paths: ['/product', '/product/*']
+
+  review:
+    host: "*"
+    paths: ['/review', '/review/*']
+
+  user:
+    host: "*"
+    paths: ['/user', '/user/*']
+
+serviceEndpoints:
+  productService:
+    url: 'https://product-management-service.vercel.app' 
+  orderService:
+    url: 'https://order-management-ilyes-b-h-d.vercel.app/'
+  userService:
+    url: 'https://user-management-ilyes-b-h-d.vercel.app'
+  reviewService:
+    url: 'https://review-management.vercel.app'
+
+policies:
+  # - cors
+  # - jwt
+  # - log
+  - proxy
+  # - expression
+  # - key-auth
+  # - oauth2
+  # - rate-limit
+pipelines:
+  productPipeline:
+    apiEndpoints:
+      - product
+    policies:
+      - proxy:
+          - action:
+              serviceEndpoint: productService
+              changeOrigin: true
+
+  orderPipeline:
+    apiEndpoints:
+      - order
+    policies:
+      - proxy:
+          - action:
+              serviceEndpoint: orderService
+              changeOrigin: true
+
+  userPipeline:
+    apiEndpoints:
+      - user
+    policies:
+      - proxy:
+          - action:
+              serviceEndpoint: userService
+              changeOrigin: true
+
+  reviewPipeline:
+    apiEndpoints:
+      - review
+    policies:
+      - proxy:
+          - action:
+              serviceEndpoint: reviewService
+              changeOrigin: true

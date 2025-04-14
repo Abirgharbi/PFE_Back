@@ -1,0 +1,17 @@
+version: "3"
+
+services:
+  review_management_service:
+    hostname: review_management_service
+    build: .
+    command: pnpm start
+    ports:
+      - "4003:4003"
+    volumes:
+      - .:/app
+    networks:
+      - arkea_api
+
+networks:
+  arkea_api:
+    external: true

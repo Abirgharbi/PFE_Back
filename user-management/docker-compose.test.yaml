@@ -1,0 +1,17 @@
+version: "3"
+
+services:
+  user_management_service:
+    hostname: user_management_service
+    build: .
+    command: pnpm test
+    ports:
+      - "4002:4002"
+    volumes:
+      - .:/app
+    networks:
+      - arkea_api
+
+networks:
+  arkea_api:
+    external: true

@@ -1,0 +1,17 @@
+version: "3"
+
+services:
+  arkea_gateway:
+    hostname: arkea_gateway
+    build: .
+    command: pnpm start
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    networks:
+      - api
+
+networks:
+  api:
+    driver: bridge

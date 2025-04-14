@@ -1,0 +1,4 @@
+node_modules
+.vercel
+docker-compose.yml
+Dockerfile
