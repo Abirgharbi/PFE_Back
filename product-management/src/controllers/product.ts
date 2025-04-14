@@ -3,13 +3,34 @@ import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { CustomError } from '../middleware/errorHandler';
 import { Category } from '../models/category';
+import ProductBuilder from '../Builder/Product';
+import  ProductUpdateBuilder  from '../Builder/ProductUpdate';
 
 import dotenv from 'dotenv';
 import { ObjectId } from 'mongodb';
 dotenv.config();
 
-const addProduct = async (req: Request, res: Response, next: NextFunction) => {
 
+const addProduct = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { name, price, compare_at_price, description, category, productCost, quantity, thumbnail, images, colors, discount, model } = req.body;
+
+        const product = new ProductBuilder(name, price, compare_at_price, description, category, productCost, quantity, thumbnail)
+            .setRatings(0, 0)
+            .setColors(colors || [])
+            .setDiscount(discount || 0)
+            .setModel(model || '')
+            .setImages(images || [])
+            .build();
+
+        await product.save();
+        return res.status(StatusCodes.OK).send(product);
+    } catch (error) {
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
+    }
+};
+
+const updateProduct = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const {
             name,
@@ -21,85 +42,44 @@ const addProduct = async (req: Request, res: Response, next: NextFunction) => {
             quantity,
             thumbnail,
             productCost,
-            model,
             ratingsAverage,
             ratingsCount,
             colors,
-            discount
+            discount,
+            model
         } = req.body;
 
-        const product = model
-            ? await Product.create({
-                name,
-                price,
-                compare_at_price,
-                description,
-                category,
-                quantity,
-                productCost,
-                model,
-                thumbnail,
-                ratingsAverage,
-                ratingsCount,
-                colors,
-                discount
-            })
-            : await Product.create({
-                name,
-                price,
-                compare_at_price,
-                description,
-                category,
-                images,
-                thumbnail,
-                productCost,
-                ratingsAverage,
-                ratingsCount,
-                quantity,
-                colors,
-                discount
-            });
+        const updateBuilder = new ProductUpdateBuilder();
 
-        return res.status(StatusCodes.OK).send(product);
-    } catch (error) {
+        if (name) updateBuilder.setName(name);
+        if (price) updateBuilder.setPrice(price);
+        if (compare_at_price) updateBuilder.setCompareAtPrice(compare_at_price);
+        if (description) updateBuilder.setDescription(description);
+        if (category) updateBuilder.setCategory(category);
+        if (images) updateBuilder.setImages(images);
+        if (quantity) updateBuilder.setQuantity(quantity);
+        if (thumbnail) updateBuilder.setThumbnail(thumbnail);
+        if (productCost) updateBuilder.setProductCost(productCost);
+        if (ratingsAverage !== undefined && ratingsCount !== undefined) updateBuilder.setRatings(ratingsAverage, ratingsCount);
+        if (colors) updateBuilder.setColors(colors);
+        if (discount) updateBuilder.setDiscount(discount);
+        if (model) updateBuilder.setModel(model);
 
-        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
-    }
-}
+        const updateData = updateBuilder.build();
 
-const updateProduct = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { name,
-            price,
-            compare_at_price,
-            description,
-            category,
-            images,
-            quantity,
-            thumbnail,
-            productCost,
-            ratingsAverage,
-            ratingsCount,
-            colors } = req.body;
-        const product = await Product.findByIdAndUpdate(req.params.id, {
-            name,
-            price,
-            compare_at_price,
-            description,
-            category,
-            images,
-            quantity,
-            thumbnail,
-            productCost,
-            ratingsAverage,
-            ratingsCount,
-            colors
-        }, { new: true });
-        return res.status(StatusCodes.OK).send(product);
+        const product = await Product.findByIdAndUpdate(req.params.id, updateData, { new: true });
+
+        if (!product) {
+            return next(new CustomError(StatusCodes.NOT_FOUND, 'Product not found'));
+        }
+
+        return res.status(StatusCodes.OK).json(product);
     } catch (error) {
         return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
     }
-}
+};
+
+
 
 const deleteProduct = async (req: Request, res: Response, next: NextFunction) => {
     try {
