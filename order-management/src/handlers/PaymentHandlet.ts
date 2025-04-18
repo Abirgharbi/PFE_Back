@@ -1,4 +1,4 @@
-// src/handlers/PaymentHandler.ts
+// PaymentHandler.ts
 import { Request, Response } from 'express';
 
 export abstract class PaymentHandler {

@@ -10,6 +10,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "arkea": "file:",
     "express-gateway": "^1.16.11",
     "rimraf": "^3.0.2",
     "vercel": "^28.20.0"
