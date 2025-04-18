@@ -1,100 +1,255 @@
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { Product } from '../models/products';
-import { Category } from '../models/category';
 import { CustomError } from '../middleware/errorHandler';
+import { Category } from '../models/category';
+import { products } from '../models/Products'; 
+//import dotenv from 'dotenv';
+//dotenv.config();
 
-export const addProduct = async (req: Request, res: Response, next: NextFunction) => {
+const addProduct = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const product = new Product(req.body);
+        const {
+            name, price, compare_at_price, description, category, images, quantity,
+            thumbnail, productCost, modelName, ratingsAverage, ratingsCount, colors, discount
+        } = req.body;
+
+        const product = await products.create({
+            name,
+            price,
+            compare_at_price,
+            description,
+            category,
+            images,
+            quantity,
+            productCost,
+            modelName,
+            thumbnail,
+            ratingsAverage,
+            ratingsCount,
+            colors,
+            discount
+        });
+
+        return res.status(StatusCodes.OK).send(product);
+    } catch (error) {
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
+    }
+};
+
+const updateProduct = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const updated = await products.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        return res.status(StatusCodes.OK).send(updated);
+    } catch (error) {
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
+    }
+};
+
+const deleteProduct = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const product = await products.findByIdAndDelete(req.params.id);
+        return res.status(StatusCodes.OK).send(product);
+    } catch (error) {
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
+    }
+};
+
+const getRecentProducts = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const perPage = 6;
+        const page = Math.max(0, Number(req.query.page) || 0);
+
+        const [count, result] = await Promise.all([
+            products.countDocuments(),
+            products.find({ status: true }).sort({ createdAt: -1 }).limit(perPage).skip(perPage * page)
+        ]);
+
+        return res.status(StatusCodes.OK).send({ count, products: result });
+    } catch (error) {
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
+    }
+};
+
+const getPopularProducts = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const perPage = 6;
+        const page = Math.max(0, Number(req.query.page) || 0);
+
+        const [count, result] = await Promise.all([
+            products.countDocuments(),
+            products.find({ status: true }).sort({ totalRevenue: -1 }).limit(perPage).skip(perPage * page)
+        ]);
+
+        return res.status(StatusCodes.OK).send({ count, products: result });
+    } catch (error) {
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
+    }
+};
+
+const getProducts = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const perPage = 6;
+        const page = Math.max(0, Number(req.query.page) || 0);
+
+        const [count, result] = await Promise.all([
+            products.countDocuments(),
+            products.find().sort({ createdAt: -1 }).limit(perPage).skip(perPage * page)
+        ]);
+
+        return res.status(StatusCodes.OK).send({ count, products: result });
+    } catch (error) {
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
+    }
+};
+
+const getProductById = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const product = await products.findById(req.params.id);
+        return res.status(StatusCodes.OK).send(product);
+    } catch (error) {
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
+    }
+};
+
+const getFiltredProducts = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { min, max, rating } = req.query;
+        const result = await products.find({
+            status: true,
+            price: { $gte: Number(min), $lte: Number(max) },
+            ratingsAverage: { $gte: Number(rating) }
+        });
+
+        return res.status(StatusCodes.OK).send({ count: result.length, products: result });
+    } catch (error) {
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
+    }
+};
+
+const getProductsByCategory = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const categoryDoc = await Category.findById(req.params.id);
+        const result = await products.find({ category: categoryDoc?.name, status: true });
+
+        return res.status(StatusCodes.OK).send({ count: result.length, products: result });
+    } catch (error) {
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
+    }
+};
+
+const getBestSellingProducts = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const result = await products.find({ status: true }).sort({ revenue: -1 }).limit(5);
+        return res.status(StatusCodes.OK).send(result);
+    } catch (error) {
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
+    }
+};
+
+const getDiscountedProducts = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const result = await products.find({ discount: { $gte: Number(req.query.discount) }, status: true });
+        return res.status(StatusCodes.OK).send({ count: result.length, products: result });
+    } catch (error) {
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
+    }
+};
+
+//implementation du Expert
+const checkProductsInStock = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const productMap = req.body; // { id1: qty1, id2: qty2 }
+        const productIds = Object.keys(productMap);  // Les ids des produits
+        const productQuantities: number[] = Object.values(productMap);  // Quantités demandées pour chaque produit
+
+        const allProducts = await products.find({ _id: { $in: productIds } });
+
+        const insufficient = allProducts.filter((product, index) => {
+            // Utilise la méthode `isInStock` du modèle pour vérifier si la quantité est suffisante
+            return !product.isInStock(productQuantities[index]);
+        });
+
+        return res.status(StatusCodes.OK).send({ count: insufficient.length, products: insufficient });
+    } catch (error) {
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
+    }
+};
+
+
+//implementation du Expert
+const updateProductRating = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const product = await products.findById(req.params.id);
+        if (!product) return res.status(StatusCodes.NOT_FOUND).json({ error: 'Product not found' });
+
+        product.updateRating(Number(req.body.rating));
         await product.save();
-        res.status(StatusCodes.CREATED).json(product);
+
+        return res.status(StatusCodes.OK).json(product);
     } catch (error) {
-        next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Unable to add product'));
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
     }
 };
-
-export const updateProduct = async (req: Request, res: Response, next: NextFunction) => {
+//implementation du Expert
+const updateProductAfterSelling = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        res.status(StatusCodes.OK).json(product);
-    } catch (error) {
-        next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Unable to update product'));
-    }
-};
-
-export const deleteProduct = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const product = await Product.findByIdAndDelete(req.params.id);
-        res.status(StatusCodes.OK).json(product);
-    } catch (error) {
-        next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Unable to delete product'));
-    }
-};
-
-//Changées avec Expert 
-
-export const updateProductRating = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const product = await Product.findById(req.params.id);
+        const product = await products.findById(req.params.id);
         if (!product) return next(new CustomError(StatusCodes.NOT_FOUND, 'Product not found'));
 
-        product.updateRating(req.body.rating);
-        await product.save();
+        const qtySold = Number(req.body.quantity);
+        const newQty = product.quantity - qtySold;
+        const newRevenue = product.totalRevenue + product.calculateRevenue(qtySold);
 
-        res.status(StatusCodes.OK).json(product);
+        const updated = await products.findByIdAndUpdate(product._id, {
+            quantity: newQty,
+            totalRevenue: newRevenue
+        }, { new: true });
+
+        return res.status(StatusCodes.OK).json({ message: 'Product updated successfully', updatedProduct: updated });
     } catch (error) {
-        next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Unable to update rating'));
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
     }
 };
 
-export const updateProductAfterSelling = async (req: Request, res: Response, next: NextFunction) => {
+const getTotalMoneyEarned = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { id } = req.params;
-        const { quantity } = req.body;
-        const product = await Product.findById(id);
-
-        if (!product) return next(new CustomError(StatusCodes.NOT_FOUND, 'Product not found'));
-
-        product.totalRevenue += product.calculateRevenue(quantity);
-        product.quantity -= quantity;
-        await product.save();
-
-        res.status(StatusCodes.OK).json({ message: 'Product updated', product });
+        const all = await products.find();
+        const total = all.reduce((acc, p) => acc + p.totalRevenue, 0);
+        return res.status(StatusCodes.OK).send({ totalMoneyEarned: total });
     } catch (error) {
-        next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Error updating product after sale'));
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
     }
 };
-
-export const updateProductStatus = async (req: Request, res: Response, next: NextFunction) => {
+//implementation du Expert
+const updateProductStatus = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const product = await Product.findById(req.params.id);
+        const product = await products.findById(req.params.id);
         if (!product) return res.status(StatusCodes.NOT_FOUND).json({ message: 'Product not found' });
 
         product.toggleStatus();
         await product.save();
 
-        res.status(StatusCodes.OK).json(product);
+        return res.status(StatusCodes.OK).json({ updatedProduct: product });
     } catch (error) {
-        next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Error toggling product status'));
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
     }
 };
 
-
-export const getProducts = async (_req: Request, res: Response, next: NextFunction) => {
+const calculateTotalRevenue = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const products = await Product.find();
-        res.status(StatusCodes.OK).json(products);
+        const result = await products.aggregate([
+            { $group: { _id: null, totalRevenue: { $sum: "$totalRevenue" } } }
+        ]);
+
+        return res.status(StatusCodes.OK).send({ totalRevenue: result[0]?.totalRevenue || 0 });
     } catch (error) {
-        next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Error fetching products'));
+        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
     }
 };
 
-export const getProductById = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const product = await Product.findById(req.params.id);
-        res.status(StatusCodes.OK).json(product);
-    } catch (error) {
-        next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Error fetching product by ID'));
-    }
+export {
+    addProduct, updateProduct, deleteProduct, getProducts, getProductById, getFiltredProducts,
+    getRecentProducts, getPopularProducts, getProductsByCategory, getBestSellingProducts,
+    getDiscountedProducts, checkProductsInStock, updateProductRating, updateProductAfterSelling,
+    getTotalMoneyEarned, updateProductStatus, calculateTotalRevenue
 };

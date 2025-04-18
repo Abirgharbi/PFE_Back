@@ -1,7 +1,7 @@
 // PaymentHandler.ts
 import { Request, Response } from 'express';
 
-export abstract class PaymentHandler {
+export abstract class PaymentHandler {  
     protected nextHandler?: PaymentHandler;
 
     public setNext(handler: PaymentHandler): PaymentHandler {

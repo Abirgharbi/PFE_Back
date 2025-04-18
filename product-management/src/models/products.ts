@@ -34,7 +34,7 @@ const productSchema = new Schema<Products>(
         category: { type: String, required: true },
         images: [{ type: String }],
         thumbnail: { type: String, required: true },
-        modelName: { type: String }, 
+        modelName: { type: String },          
         ratingsAverage: { type: Number, default: 0 },
         ratingsCount: { type: Number, default: 0 },
         status: { type: Boolean, default: true },
@@ -66,4 +66,4 @@ productSchema.methods.toggleStatus = function (): void {
     this.status = !this.status;
 };
 
-export const Product = mongoose.model<Products>('Product', productSchema);
+export const products = mongoose.model<Products>('Product', productSchema);
