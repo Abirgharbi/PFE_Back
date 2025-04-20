@@ -5,3 +5,4 @@ export interface AuthService {
     register?(req: Request, res: Response, next: NextFunction): Promise<Response | void>;
     verifyMagicLink(req: Request, res: Response, next: NextFunction): Promise<Response | void>;
 }
+
