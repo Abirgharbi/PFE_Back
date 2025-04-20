@@ -1,152 +1,55 @@
 import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { CustomError } from '../middleware/errorHandler';
-import dotenv from 'dotenv';
-dotenv.config();
-import { Order } from '../models/orderModel';
-import { sendConfimationEmail, deleveredOrder } from '../utils/sendConfirmationEmail';
-import { Customer } from '../models/customer';
-import { Address } from '../models/addressModel';
+import { OrderService } from '../services/OrderService';
 
-const addOrder = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-): Promise<Response<any> | void> => {
+const orderService = new OrderService();
 
-    const { amount, productCard, addressId, revenue, customerId } = req.body;
-
+export const addOrder = async (req: Request, res: Response, next: NextFunction) => {
     try {
-
-        const address = await Address.find({ addressId }).sort({ createdAt: -1 });
-
-        const order = await Order.create({
-            amount,
-            productCard,
-            address,
-            revenue,
-            customerId
-        });
-
-        return res.status(StatusCodes.CREATED).json(order);
-    } catch (error) {
+        const order = await orderService.createOrder(req.body);
+        res.status(StatusCodes.CREATED).json(order);
+    } catch (error: any) {
         next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, error.message));
     }
-}
+};
 
-const getOrders = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-): Promise<Response<any> | void> => {
+export const getOrders = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        var perPage = 5;
-        var page: number = Number(req.query.page);
-        page > 0 ? page : page = 0;
-
-        const orders = await Order.find().sort({ createdAt: -1 })
-            .limit(perPage)
-            .skip(perPage * page);
-        const allOrders = await Order.find().sort({ createdAt: -1 });
-        const count = allOrders.length;
-        return res.status(StatusCodes.OK).json({
-            count,
-            orders
-        });
-    } catch (error) {
+        const page = Number(req.query.page) || 0;
+        const { orders, count } = await orderService.getOrders(page);
+        res.status(StatusCodes.OK).json({ count, orders });
+    } catch (error: any) {
         next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, error.message));
     }
-}
+};
 
-const getSalesAnalytics = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-): Promise<Response<any> | void> => {
+export const getSalesAnalytics = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const orders = await Order.aggregate([
-            {
-                $group: {
-                    _id: {
-                        $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
-                    },
-                    totalRevenue: {
-                        $sum: { $toDouble: "$revenue" }
-                    }
-                }
-            },
-            {
-                $project: {
-                    _id: 0,
-                    Date: "$_id",
-                    totalRevenue: 1
-                }
-            },
-            {
-                $sort: {
-                    Date: 1
-                }
-            }
-        ])
-
-        return res.status(StatusCodes.OK).json(orders);
-    } catch (error) {
+        const data = await orderService.getSalesAnalytics();
+        res.status(StatusCodes.OK).json(data);
+    } catch (error: any) {
         next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, error.message));
     }
-}
+};
 
-const getCustomerOrders = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-): Promise<Response<any> | void> => {
+export const getCustomerOrders = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { id } = req.params;
-        const orders = await Order.find({ customerId: id }).sort({ createdAt: -1 });
-
-        return res.status(StatusCodes.OK).json(orders);
-    }
-    catch (error) {
+        const id = req.params.id;
+        const orders = await orderService.getCustomerOrders(id);
+        res.status(StatusCodes.OK).json(orders);
+    } catch (error: any) {
         next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, error.message));
     }
-}
+};
 
-const updateShippingStatus = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-): Promise<Response<any> | void> => {
+export const updateShippingStatus = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { id } = req.params;
-
+        const id = req.params.id;
         const { shippingStatus } = req.body;
-
-
-        if (!shippingStatus) {
-            return next(new CustomError(StatusCodes.BAD_REQUEST, 'Shipping status is required'));
-        }
-
-        const order = await Order.findById(id);
-
-        const customerId = order.customerId.toString();
-        const customer = await Customer.findOne({ customerId });
-
-        const email = customer.email;
-
-        if (shippingStatus == 'confirmed') {
-            sendConfimationEmail(order, email)
-        }
-
-        if (shippingStatus == 'shipped') {
-            deleveredOrder(email)
-        }
-        await Order.updateOne({ _id: order.id }, { shippingStatus }, { new: true });
-        return res.status(StatusCodes.OK);
-    }
-    catch (error) {
+        await orderService.updateShippingStatus(id, shippingStatus);
+        res.status(StatusCodes.OK).json({ message: 'Shipping status updated' });
+    } catch (error: any) {
         next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, error.message));
     }
-}
-
-
-export { addOrder, getOrders, getSalesAnalytics, getCustomerOrders, updateShippingStatus };
+};
