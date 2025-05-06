@@ -48,9 +48,10 @@ const register = async (req: Request, res: Response, next: NextFunction) => {
 
         const magicToken = generateAuthToken(email, '1h');
         const exist = await Customer.findOne({ email });
+        const link = `user/verifyMagicLink?token=${magicToken}`;
 
         if (!exist) {
-            await sendMagicLink(email, magicToken, "Your account has been created. click the link below to confirm your email");
+            await sendMagicLink(email, link, "Your account has been created. click the link below to confirm your email");
 
             const customer = await Customer.create({
                 email,

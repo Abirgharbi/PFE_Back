@@ -93,7 +93,7 @@ export const sendMagicLink = async (email: string, link: string, message: string
             
                 <p>Thank you for signing up for ARkea! Before we can fully activate your account, we need to verify your email address. Please click the following link within the next hour to confirm your email address and complete the registration process:</p>
             
-                <p><a class="button" style='color:white' href="https://arkea-production.up.railway.app/${link}">Click here to verify your email address</a></p>
+                <p><a class="button" style='color:white' href="http://localhost:4002/${link}">Click here to verify your email address</a></p>
             
                 <p>If you are unable to click the link, please copy and paste it into your browser's address bar.</p>
             

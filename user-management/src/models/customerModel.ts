@@ -1,5 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -26,11 +26,12 @@ export const customerSchema = new Schema<Customer>({
     phone: { type: String, required: false },
 }, { timestamps: true });
 
+
+
 export const generateAuthToken = function (email: string, expiresIn: string) {
     const { jwtSecret } = process.env;
-
     const token: string = jwt.sign({ email }, jwtSecret as string, {
-        expiresIn: expiresIn,
+        expiresIn: '1h',
     });
     return token;
 }
