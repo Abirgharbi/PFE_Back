@@ -7,17 +7,27 @@ dotenv.config();
 
 const addCategory = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { name, image } = req.body;
-
-        const category = await Category.create({
-            name, image
-        });
-        return res.status(StatusCodes.OK).send(category);
+      const { name } = req.body;
+      const file = req.file;
+  
+      if (!file) {
+        return res.status(StatusCodes.BAD_REQUEST).json({ message: 'Image is required.' });
+      }
+  
+      const imagePath = `/uploads/${file.filename}`;
+  
+      const category = await Category.create({
+        name,
+        image: imagePath
+      });
+  
+      return res.status(StatusCodes.OK).send(category);
     } catch (error) {
-        return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
+      console.error(error);
+      return next(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Something went wrong'));
     }
-}
-
+  };
+  
 const updateCategory = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { name, image } = req.body;

@@ -5,6 +5,9 @@ import cookieParser from 'cookie-parser';
 import categoryRoute from './routes/category';
 import productRoute from './routes/product';
 import dotenv from 'dotenv';
+//new
+import path = require('path');
+
 dotenv.config();
 
 const app = express();
@@ -29,6 +32,9 @@ app.use(
 // routes
 app.use("/product/category", categoryRoute);
 app.use("/product", productRoute);
+//new
+app.use('/uploads', express.static(path.join(__dirname,'..', 'uploads')));
+
 
 app.listen(process.env.PORT, () =>
   console.log(`server running on port : ${process.env.PORT} \n`)
