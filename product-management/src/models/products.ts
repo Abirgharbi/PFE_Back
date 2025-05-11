@@ -10,14 +10,14 @@ export interface Products extends Document {
     category: string;
     images?: string[];
     quantity: number;
-    modelName?: string;   // changé ici
+    modelName?: string;  
     thumbnail: string;
     ratingsAverage: number;
     ratingsCount: number;
     status: boolean;
     colors?: string[];
     discount: number;
-
+    // ajouté poru GRASP
     calculateRevenue(quantitySold: number): number;
     updateRating(newRating: number): void;
     isInStock(requiredQty: number): boolean;
