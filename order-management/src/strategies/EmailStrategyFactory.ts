@@ -13,12 +13,13 @@ class ShippedEmailStrategy implements EmailStrategy {
     }
 }
 
+const strategyMap: Record<string, EmailStrategy> = {
+    confirmed: new ConfirmedEmailStrategy(),
+    shipped: new ShippedEmailStrategy(),
+};
+
 export class EmailStrategyFactory {
     static getStrategy(status: string): EmailStrategy | null {
-        switch (status) {
-            case 'confirmed': return new ConfirmedEmailStrategy();
-            case 'shipped': return new ShippedEmailStrategy();
-            default: return null;
-        }
+        return strategyMap[status] || null;
     }
 }
