@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
 import StripeService from '../service/stripeService';
+import StripeSingleton from '../config/stripeClient';
 import { generateResponse } from '../utils/stripe';
-import Stripe from 'stripe';
-
-const stripeService = new StripeService();
 
 export const pay = async (req: Request, res: Response) => {
     const {
@@ -30,6 +28,10 @@ export const pay = async (req: Request, res: Response) => {
     }
 
     try {
+        // Wait for the StripeSingleton instance to be ready
+        const stripeClient = await StripeSingleton.getInstance();
+        const stripeService = new StripeService(stripeClient); // Pass the resolved client
+
         // Handle the case where cvcToken and email are provided
         if (cvcToken && email) {
             // Fetch customers by email
@@ -51,15 +53,15 @@ export const pay = async (req: Request, res: Response) => {
             // Create a payment intent using the payment method ID
             const intent = await stripeService.createPaymentIntent(amount, currency, paymentMethods[0].id, useStripeSdk);
             return res.status(200).send(generateResponse(intent));
-        } 
-        
+        }
+
         // Handle the case where a PaymentMethodId is provided
         else if (paymentMethodId) {
             // Create new PaymentIntent with a PaymentMethod ID from the client
             const intent = await stripeService.createPaymentIntent(amount, currency, paymentMethodId, useStripeSdk);
             return res.status(200).send(generateResponse(intent));
-        } 
-        
+        }
+
         // Handle the case where a PaymentIntentId is provided for confirmation
         else if (paymentIntentId) {
             const intent = await stripeService.confirmPaymentIntent(paymentIntentId);

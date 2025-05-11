@@ -1,11 +1,11 @@
-import StripeSingleton from '../config/stripeClient';
+import { IStripeClient } from '../interface/IStripeClient';
 import Stripe from 'stripe';
 
 class StripeService {
-    private stripe: Stripe;
+    private stripe: IStripeClient;
 
-    constructor() {
-        this.stripe = StripeSingleton.getInstance();  // Use the Singleton instance
+    constructor(stripeClient: IStripeClient) {
+        this.stripe = stripeClient;
     }
 
     // Method to create a PaymentIntent
